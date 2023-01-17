@@ -43,7 +43,7 @@ public class StatsClient {
         return webClient
                 .get()
                 .uri(uriBuilder -> uriBuilder
-                        .path("/ru.practicum.stats")
+                        .path("/stats")
                         .queryParam("start", start.replace("T", " "))
                         .queryParam("end", end.replace("T", " "))
                         .queryParam("uris", String.join(", ", uris).replace("{", "")

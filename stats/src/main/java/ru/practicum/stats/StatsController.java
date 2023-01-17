@@ -22,9 +22,9 @@ public class StatsController {
     private final StatsService statsService;
 
     @PostMapping("/hit")
-    public StatsClientDto save(@Valid @RequestBody StatsClientDto endPointStatsClientDto) {
+    public StatsClientDto save(@Valid @RequestBody StatsClientDto statsClientDto) {
         log.info("add ru.practicum.event in statistic");
-        return statsService.save(endPointStatsClientDto);
+        return statsService.save(statsClientDto);
     }
 
     @GetMapping("/stats")
