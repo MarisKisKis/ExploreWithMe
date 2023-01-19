@@ -66,7 +66,6 @@ public class EventMapper {
                 .build();
     }
 
-    //TODO костыль. Надо переписать... а еще можно вынести пагинацию в отдельный метод...
     public static EventDto toEventDto(Event event, Long views, Long reqs) {
         return EventDto.builder()
                 .id(event.getId())

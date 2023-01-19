@@ -3,6 +3,7 @@ package ru.practicum.stats.model;
 import lombok.*;
 
 import javax.persistence.*;
+import javax.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
 
 @Entity
@@ -19,15 +20,19 @@ public class StatsClient {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "app")
+    @NotBlank
+    @Column(name = "app", length = 120, nullable = false)
     private String app;
 
-    @Column(name = "uri")
+    @NotBlank
+    @Column(name = "uri", length = 8000, nullable = false)
     private String uri;
 
-    @Column(name = "ip")
+    @NotBlank
+    @Column(name = "ip", length = 120, nullable = false)
     private String ip;
 
-    @Column(name = "timestamp")
+    @NotBlank
+    @Column(name = "timestamp", nullable = false)
     private LocalDateTime timestamp;
 }

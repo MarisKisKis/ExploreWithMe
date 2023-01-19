@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS "users" (
                                        "id" SERIAL PRIMARY KEY,
                                        "email" varchar(50) NOT NULL,
-                                       "name" varchar(100) NOT NULL
+                                       "name" varchar(100) UNIQUE NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS "categories" (
@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS "events" (
                                         "initiator_id" BIGINT NOT NULL,
                                         "created_on" timestamp NOT NULL,
                                         "published_on" timestamp,
-                                        "event_state" varchar,
+                                        "event_state" varchar (12),
                                         "lon" float,
                                         "lat" float
 );

@@ -25,8 +25,7 @@ public class User {
     private String email;
 
     @NotBlank
-    @Size(max = 256)
-    @Column(name = "name", nullable = false)
+    @Column(name = "name", nullable = false, length = 256)
     private String name;
 
 }

@@ -15,11 +15,14 @@ import java.util.List;
 
 @Slf4j
 @Service
-@AllArgsConstructor
 public class StatsServiceImpl implements StatsService {
 
-    @Autowired
     private StatsRepository statsRepository;
+
+    @Autowired
+    public StatsServiceImpl(StatsRepository statsRepository) {
+        this.statsRepository = statsRepository;
+    }
 
     @Override
     public StatsClientDto save(StatsClientDto statsClientDto) {

@@ -15,11 +15,15 @@ import java.util.List;
 @Slf4j
 @Validated
 @RestController
-@RequiredArgsConstructor
 public class StatsController {
 
-    @Autowired
+
     private final StatsService statsService;
+
+    @Autowired
+    public StatsController(StatsService statsService) {
+        this.statsService = statsService;
+    }
 
     @PostMapping("/hit")
     public StatsClientDto save(@Valid @RequestBody StatsClientDto statsClientDto) {

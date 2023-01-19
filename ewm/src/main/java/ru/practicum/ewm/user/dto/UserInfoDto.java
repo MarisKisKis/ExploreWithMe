@@ -16,6 +16,7 @@ import javax.validation.constraints.Size;
 public class UserInfoDto {
 
     private Long id;
+
     @NotBlank
     @Size(max = 256)
     private String name;
