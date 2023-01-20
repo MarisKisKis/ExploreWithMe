@@ -1,6 +1,7 @@
 package ru.practicum.ewm.event;
 
 
+import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.ewm.category.Category;
 import ru.practicum.ewm.client.ClientService;
 import ru.practicum.ewm.event.comments.CommentLinkRepository;
@@ -36,6 +37,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
+@Transactional(readOnly = true)
 public class EventServiceImpl implements EventService {
 
     private final EventRepository eventRepository;

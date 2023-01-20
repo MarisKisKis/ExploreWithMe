@@ -25,7 +25,10 @@ CREATE TABLE IF NOT EXISTS "events" (
                                         "published_on" timestamp,
                                         "event_state" varchar (12),
                                         "lon" float,
-                                        "lat" float
+                                        "lat" float,
+                                        CONSTRAINT FK_EVENTS_ON_CATEGORY FOREIGN KEY (category_id) REFERENCES "categories" ("id"),
+                                        CONSTRAINT FK_EVENTS_ON_INITIATOR FOREIGN KEY (initiator_id) REFERENCES "users" ("id")
+
 );
 
 CREATE TABLE IF NOT EXISTS "event_requests" (
@@ -33,7 +36,9 @@ CREATE TABLE IF NOT EXISTS "event_requests" (
                                                 "user_id" BIGINT NOT NULL,
                                                 "event_id" BIGINT NOT NULL,
                                                 "status" varchar,
-                                                "created" timestamp NOT NULL
+                                                "created" timestamp NOT NULL,
+                                                CONSTRAINT FK_EVENT_REQUEST_ON_USER FOREIGN KEY ("user_id") REFERENCES "users" ("id"),
+                                                CONSTRAINT FK_EVENT_REQUEST_ON_EVENT FOREIGN KEY ("event_id") REFERENCES "events" ("id")
 );
 
 CREATE TABLE IF NOT EXISTS "compilations" (
@@ -44,7 +49,9 @@ CREATE TABLE IF NOT EXISTS "compilations" (
 
 CREATE TABLE IF NOT EXISTS "compilation_event_link" (
                                                         "compilation_id" int NOT NULL,
-                                                        "event_id" BIGINT NOT NULL
+                                                        "event_id" BIGINT NOT NULL,
+                                                        CONSTRAINT FK_COMPILATION_EVENT_LINK_ON_EVENT FOREIGN KEY ("event_id") REFERENCES "events" ("id"),
+                                                        CONSTRAINT FK_COMPILATION_EVENT_LINK_ON_COMPILATION FOREIGN KEY ("compilation_id") REFERENCES "compilations" ("id")
 );
 CREATE TABLE IF NOT EXISTS "comments" (
                                           "id" SERIAL PRIMARY KEY,
@@ -53,31 +60,15 @@ CREATE TABLE IF NOT EXISTS "comments" (
                                           "text" varchar (8000),
                                           "created" timestamp NOT NULL,
                                           "likes_count" INT DEFAULT 0,
-                                          "dislikes_count" INT DEFAULT 0
+                                          "dislikes_count" INT DEFAULT 0,
+                                          CONSTRAINT FK_COMMENTS_ON_USER FOREIGN KEY ("user_id") REFERENCES "users" ("id"),
+                                          CONSTRAINT FK_COMMENTS_ON_EVENT FOREIGN KEY ("event_id") REFERENCES "events" ("id")
 );
 
 CREATE TABLE IF NOT EXISTS "comment_user_link" (
                                                    "id" SERIAL PRIMARY KEY,
                                                    "user_id" BIGINT NOT NULL,
-                                                   "comment_id" BIGINT NOT NULL
+                                                   "comment_id" BIGINT NOT NULL,
+                                                   CONSTRAINT FK_COMMENT_USER_LINK_ON_USER FOREIGN KEY ("user_id") REFERENCES "users" ("id"),
+                                                   CONSTRAINT FK_COMMENT_USER_LINK_ON_COMMENT FOREIGN KEY ("comment_id") REFERENCES "comments" ("id")
 );
-
-ALTER TABLE "events" ADD FOREIGN KEY ("category_id") REFERENCES "categories" ("id");
-
-ALTER TABLE "events" ADD FOREIGN KEY ("initiator_id") REFERENCES "users" ("id");
-
-ALTER TABLE "event_requests" ADD FOREIGN KEY ("user_id") REFERENCES "users" ("id");
-
-ALTER TABLE "event_requests" ADD FOREIGN KEY ("event_id") REFERENCES "events" ("id");
-
-ALTER TABLE "compilation_event_link" ADD FOREIGN KEY ("event_id") REFERENCES "events" ("id");
-
-ALTER TABLE "compilation_event_link" ADD FOREIGN KEY ("compilation_id") REFERENCES "compilations" ("id");
-
-ALTER TABLE "comments" ADD FOREIGN KEY ("user_id") REFERENCES "users" ("id");
-
-ALTER TABLE "comments" ADD FOREIGN KEY ("event_id") REFERENCES "events" ("id");
-
-ALTER TABLE "comment_user_link" ADD FOREIGN KEY ("user_id") REFERENCES "users" ("id");
-
-ALTER TABLE "comment_user_link" ADD FOREIGN KEY ("comment_id") REFERENCES "comments" ("id");
