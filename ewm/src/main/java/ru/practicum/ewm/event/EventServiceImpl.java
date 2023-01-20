@@ -390,9 +390,6 @@ public class EventServiceImpl implements EventService {
         Event event = getEventById(eventId);
         User author = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException(String.format("User with ID %s wasn't found", userId)));
-        if (commentDto.getText().isBlank() || commentDto.getText().isEmpty()) {
-            throw new ValidationException("Comment can't be blank or empty");
-        }
         if (!event.getState().equals(EventStatus.PUBLISHED)) {
             throw new ValidationException("It's forbidden to write a comment for not published event");
         }

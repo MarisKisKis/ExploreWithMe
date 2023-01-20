@@ -88,7 +88,7 @@ public class EventPrivateController {
     @PostMapping("{eventId}/comments")
     public CommentDto addCommentByUser(@PathVariable @NotNull Long userId,
                                          @PathVariable @NotNull Long eventId,
-                                         @RequestBody CommentDto commentDto) {
+                                         @RequestBody @Valid CommentDto commentDto) {
         log.info("User with ID = {} add a comment for event with ID = {}", userId, eventId);
         return eventService.addCommentByUser(userId, eventId, commentDto);
     }
