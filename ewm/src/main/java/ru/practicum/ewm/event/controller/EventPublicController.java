@@ -2,6 +2,7 @@ package ru.practicum.ewm.event.controller;
 
 import ru.practicum.ewm.client.StatsClient;
 import ru.practicum.ewm.event.EventService;
+import ru.practicum.ewm.event.comments.model.dto.CommentDto;
 import ru.practicum.ewm.event.dto.EventDto;
 import ru.practicum.ewm.event.dto.EventFullDto;
 import ru.practicum.ewm.event.model.Sort;
@@ -56,5 +57,21 @@ public class EventPublicController {
         log.info("Get ru.practicum.event with ID = {}", id);
         statsClient.saveStats(request);
         return eventService.getPublicEventById(id);
+    }
+
+    @GetMapping("/{id}/comments")
+    public List<CommentDto> getCommentsForEvent(@PathVariable(name = "id") Long eventId,
+                                                     @PositiveOrZero @RequestParam(name = "from", defaultValue = "0")
+                                                     Integer from,
+                                                     @Positive @RequestParam(name = "size", defaultValue = "10")
+                                                     Integer size) {
+        log.info("Retrieve comments for event with ID = {}", eventId);
+        return eventService.getCommentsForEvent(eventId, from, size);
+    }
+
+    @GetMapping("/comments/{comId}")
+    public CommentDto getCommentById(@PathVariable(name = "comId") Long commentId) {
+        log.info("Retrieve comment with ID = {}", commentId);
+        return eventService.getCommentById(commentId);
     }
 }

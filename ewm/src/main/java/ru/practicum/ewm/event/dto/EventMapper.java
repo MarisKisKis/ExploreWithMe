@@ -1,16 +1,18 @@
 package ru.practicum.ewm.event.dto;
 
 import ru.practicum.ewm.category.Category;
+import ru.practicum.ewm.event.comments.model.dto.CommentDto;
 import ru.practicum.ewm.event.model.Event;
 import ru.practicum.ewm.event.model.EventStatus;
 import ru.practicum.ewm.event.model.Location;
 import ru.practicum.ewm.user.User;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class EventMapper {
 
-    public static EventFullDto toEventFullDto(Event event, Long confirmedRequests, Long views) {
+    public static EventFullDto toEventFullDto(Event event, Long confirmedRequests, Long views,  List<CommentDto> commentDtoList) {
         return EventFullDto.builder()
                 .id(event.getId())
                 .title(event.getTitle())
@@ -38,6 +40,7 @@ public class EventMapper {
                         .build())
                 .views(views)
                 .confirmedRequests(Math.toIntExact(confirmedRequests))
+                .commentDtoList(commentDtoList)
                 .build();
     }
 
