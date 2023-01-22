@@ -1,6 +1,7 @@
 package ru.practicum.ewm.event;
 
 
+import ru.practicum.ewm.event.comments.model.dto.CommentDto;
 import ru.practicum.ewm.event.dto.EventDto;
 import ru.practicum.ewm.event.dto.EventDtoInfo;
 import ru.practicum.ewm.event.dto.EventFullDto;
@@ -42,5 +43,21 @@ public interface EventService {
     RequestDto confirmRequestForEvent(Long userId, Long eventId, Long reqId);
 
     RequestDto rejectRequestForEvent(Long userId, Long eventId, Long reqId);
+
+    void deleteCommentByAdmin(Long commentId);
+
+    List<CommentDto> getCommentsForEvent(Long eventId, Integer from, Integer size);
+
+    CommentDto getCommentById(Long commentId);
+
+    CommentDto addCommentByUser(Long userId, Long eventId, CommentDto commentDto);
+
+    CommentDto updateCommentByUser(Long userId, Long commentId, CommentDto commentDto);
+
+    CommentDto addLikeToComment(Long userId, Long commentId);
+
+    CommentDto addDislikeToComment(Long userId, Long commentId);
+
+    void removeCommentByUser(Long userId, Long commentId);
 
 }

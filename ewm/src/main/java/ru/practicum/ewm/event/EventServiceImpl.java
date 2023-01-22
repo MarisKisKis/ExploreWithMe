@@ -1,8 +1,15 @@
 package ru.practicum.ewm.event;
 
 
+import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.ewm.category.Category;
 import ru.practicum.ewm.client.ClientService;
+import ru.practicum.ewm.event.comments.CommentLinkRepository;
+import ru.practicum.ewm.event.comments.CommentRepository;
+import ru.practicum.ewm.event.comments.model.Comment;
+import ru.practicum.ewm.event.comments.model.CommentLink;
+import ru.practicum.ewm.event.comments.model.dto.CommentDto;
+import ru.practicum.ewm.event.comments.model.dto.CommentMapper;
 import ru.practicum.ewm.event.dto.EventDto;
 import ru.practicum.ewm.event.dto.EventDtoInfo;
 import ru.practicum.ewm.event.dto.EventFullDto;
@@ -12,32 +19,49 @@ import ru.practicum.ewm.event.model.EventStatus;
 import ru.practicum.ewm.event.model.Location;
 import ru.practicum.ewm.event.model.Sort;
 import ru.practicum.ewm.eventRequest.*;
+import ru.practicum.ewm.exception.ExistsElementException;
 import ru.practicum.ewm.exception.NotFoundException;
 import ru.practicum.ewm.exception.ValidationException;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import ru.practicum.ewm.user.User;
+import ru.practicum.ewm.user.UserRepository;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class EventServiceImpl implements EventService {
 
-    @Autowired
     private final EventRepository eventRepository;
 
-    @Autowired
     private final RequestRepository eventRequestRepository;
 
-    @Autowired
     private final ClientService statClientService;
+
+    private final CommentRepository commentRepository;
+
+    private final CommentLinkRepository commentLinkRepository;
+
+    private final UserRepository userRepository;
+
+    @Autowired
+    public EventServiceImpl(EventRepository eventRepository, RequestRepository eventRequestRepository, ClientService statClientService, CommentRepository commentRepository, CommentLinkRepository commentLinkRepository, UserRepository userRepository) {
+        this.eventRepository = eventRepository;
+        this.eventRequestRepository = eventRequestRepository;
+        this.statClientService = statClientService;
+        this.commentRepository = commentRepository;
+        this.commentLinkRepository = commentLinkRepository;
+        this.userRepository = userRepository;
+    }
+
 
     @Override
     public List<EventFullDto> getEvents(List<Long> userIds, List<EventStatus> stateIds, List<Integer> catIds,
@@ -300,9 +324,10 @@ public class EventServiceImpl implements EventService {
     }
 
     private EventFullDto makeFullDto(Event event) {
+        List<CommentDto> commentDtos = getCommentsForEvent(event.getId(), 0, 100);
         return EventMapper.toEventFullDto(event, eventRequestRepository
                         .countAllByStatusAndEventId(RequestStatus.CONFIRMED, event.getId()),
-                statClientService.getViewsForEvent(event, false));
+                statClientService.getViewsForEvent(event, false), commentDtos);
     }
 
     public List<EventDto> toListEventDto(List<Event> events, Boolean uniqueRequests) {
@@ -335,7 +360,122 @@ public class EventServiceImpl implements EventService {
         return events.stream()
                 .map(event -> EventMapper.toEventFullDto(event,
                         requests.get(Objects.isNull(event.getId()) ? 0 : event.getId()),
-                        views.get(event.getId())))
+                        views.get(event.getId()), getCommentsForEvent(event.getId(), 0, 100)))
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public void deleteCommentByAdmin(Long commentId) {
+        getCommentById(commentId);
+        commentRepository.deleteById(commentId);
+    }
+
+    @Override
+    public List<CommentDto> getCommentsForEvent(Long eventId, Integer from, Integer size) {
+
+        Pageable pageable = PageRequest.of(from / size, size);
+        getEventById(eventId);
+        List<Comment> comments = commentRepository.getCommentsByEvent_IdOrderByCreatedDesc(eventId, pageable);
+        return comments.stream()
+                .map(CommentMapper::toCommentDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public CommentDto getCommentById(Long commentId) {
+        Comment comment = getComment(commentId);
+        return CommentMapper.toCommentDto(comment);
+    }
+
+    @Override
+    public CommentDto addCommentByUser(Long userId, Long eventId, CommentDto commentDto) {
+        Event event = getEventById(eventId);
+        User author = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException(String.format("User with ID %s wasn't found", userId)));
+        if (!event.getState().equals(EventStatus.PUBLISHED)) {
+            throw new ValidationException("It's forbidden to write a comment for not published event");
+        }
+        Comment comment = CommentMapper.toComment(commentDto, author, event);
+        comment.setCreated(LocalDateTime.now());
+        comment.setLikesCount(0);
+        comment.setDislikesCount(0);
+
+        return CommentMapper.toCommentDto(commentRepository.save(comment));
+    }
+
+    @Override
+    public CommentDto updateCommentByUser(Long userId, Long commentId, CommentDto commentDto) {
+        Comment comment = getComment(commentId);
+        userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException(String.format("User with ID %s wasn't found", userId)));
+        checkIsUserAuthorOfComment(comment, userId);
+        if (Duration.between(LocalDateTime.now(), comment.getCreated()).toHours() > 1) {
+            throw new ValidationException("It took a long time for the comment to be written");
+        }
+        if (comment.getText().equalsIgnoreCase(commentDto.getText())) {
+            throw new ExistsElementException("You can't write exactly the same comment!");
+        }
+        comment.setText(commentDto.getText());
+        comment.setCreated(LocalDateTime.now());
+        return CommentMapper.toCommentDto(commentRepository.save(comment));
+    }
+
+    @Override
+    public CommentDto addLikeToComment(Long userId, Long commentId) {
+        Comment comment = getComment(commentId);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException(String.format("User with ID %s wasn't found", userId)));
+        checkIsUserAuthorOfComment(comment, userId);
+        CommentLink commentUserLink = CommentLink.builder()
+                .comment(comment)
+                .user(user)
+                .build();
+
+        if (Objects.isNull(commentLinkRepository.getByComment_IdAndUser_Id(commentId, userId))) {
+            comment.setLikesCount(comment.getLikesCount() + 1);
+            commentLinkRepository.save(commentUserLink);
+        }
+
+        return CommentMapper.toCommentDto(commentRepository.save(comment));
+    }
+
+    @Override
+    public CommentDto addDislikeToComment(Long userId, Long commentId) {
+        Comment comment = getComment(commentId);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException(String.format("User with ID %s wasn't found", userId)));
+        CommentLink commentUserLink = CommentLink.builder()
+                .comment(comment)
+                .user(user)
+                .build();
+
+        if (Objects.isNull(commentLinkRepository.getByComment_IdAndUser_Id(commentId, userId))) {
+            comment.setDislikesCount(comment.getDislikesCount() + 1);
+            commentLinkRepository.save(commentUserLink);
+        }
+
+        return CommentMapper.toCommentDto(commentRepository.save(comment));
+    }
+
+    @Override
+    public void removeCommentByUser(Long userId, Long commentId) {
+        userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException(String.format("User with ID %s wasn't found", userId)));
+        Comment comment = getComment(commentId);
+        checkIsUserAuthorOfComment(comment, userId);
+        commentRepository.deleteById(commentId);
+    }
+
+    private Comment getComment(Long commentId) {
+        return commentRepository.findById(commentId)
+                .orElseThrow(() -> new NotFoundException(String.format("Comment with ID = %s wasn't found ",
+                        commentId)));
+    }
+
+    private void checkIsUserAuthorOfComment(Comment comment, Long authorId) {
+        if (!comment.getUser().getId().equals(authorId)) {
+            throw new ValidationException(String.format("User with ID %s isn't an author for comment with ID %s",
+                    authorId, comment.getId()));
+        }
     }
 }
